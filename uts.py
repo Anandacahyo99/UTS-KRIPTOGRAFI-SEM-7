@@ -14,7 +14,7 @@ def extended_gcd(a, b):
     return gcd, x, y
 
 def mod_inverse(a, m=26):
-    """Menghitung invers modulo a^-1 mod m secara manual."""
+    """Menghitung invers modulo a^-1 mod m secara manual tanpa pow()."""
     gcd, x, _ = extended_gcd(a, m)
     if gcd != 1:
         raise ValueError(f"Kunci a={a} tidak valid! FPB({a}, {m}) = {gcd} (harus 1 / koprima dengan {m}).")
@@ -22,9 +22,7 @@ def mod_inverse(a, m=26):
 
 def affine_enkripsi(plain, a, b):
     """Enkripsi teks menggunakan Affine Cipher: E(x) = (ax + b) mod 26."""
-    # Validasi kunci 'a' terlebih dahulu
     mod_inverse(a, 26)
-    
     hasil = []
     for char in plain.upper():
         if char.isalpha():
@@ -32,14 +30,12 @@ def affine_enkripsi(plain, a, b):
             enkrip = (a * x + b) % 26
             hasil.append(chr(enkrip + ord('A')))
         else:
-            # Pertahankan spasi atau tanda baca jika ada
             hasil.append(char)
     return "".join(hasil)
 
 def affine_dekripsi(cipher, a, b):
     """Dekripsi teks menggunakan Affine Cipher: D(y) = a^-1 * (y - b) mod 26."""
     a_inv = mod_inverse(a, 26)
-    
     hasil = []
     for char in cipher.upper():
         if char.isalpha():
@@ -61,16 +57,18 @@ def brute_force_affine(cipher, kata):
     kata_target = kata.upper()
     kandidat = []
 
-    print(f"Mencari kata '{kata_target}' pada ciphertext: {cipher}")
+    print(f"Target Kata : '{kata_target}'")
+    print(f"Ciphertext  : {cipher}\n")
+    
     for a in kunci_a_valid:
         for b in range(26):
             teks_dekripsi = affine_dekripsi(cipher, a, b)
             if kata_target in teks_dekripsi:
                 kandidat.append((a, b, teks_dekripsi))
-                print(f"[DITEMUKAN] Kunci (a={a}, b={b}) -> Plaintext: {teks_dekripsi}")
+                print(f"  [DITEMUKAN] Kunci (a={a}, b={b}) -> Plaintext: {teks_dekripsi}")
     
     if not kandidat:
-        print("Tidak ada kandidat yang cocok ditemukan.")
+        print("  Tidak ada kandidat yang cocok ditemukan.")
     return kandidat
 
 
@@ -78,22 +76,16 @@ def brute_force_affine(cipher, kata):
 # BAGIAN C: CIPHER TRANSPOSISI
 # ==========================================
 
-# 1. Columnar Transposition Cipher
 def columnar_enkripsi(plain, kunci):
-    """Enkripsi Columnar Transposition dengan jumlah kolom fleksibel sesuai panjang kunci."""
+    """Enkripsi Columnar Transposition dengan jumlah kolom fleksibel."""
     teks = plain.replace(" ", "").upper()
     kunci = kunci.upper()
     kolom = len(kunci)
     baris = math.ceil(len(teks) / kolom)
     
-    # Tambahkan padding 'X' jika panjang teks tidak habis dibagi jumlah kolom
     panjang_total = baris * kolom
     teks_padded = teks.ljust(panjang_total, 'X')
-    
-    # Susun ke dalam matriks baris x kolom
     matriks = [list(teks_padded[i:i + kolom]) for i in range(0, panjang_total, kolom)]
-    
-    # Urutan pembacaan kolom berdasarkan urutan abjad kunci
     urutan_kunci = sorted(range(kolom), key=lambda k: kunci[k])
     
     ciphertext = []
@@ -127,7 +119,6 @@ def columnar_dekripsi(cipher, kunci):
             
     return "".join(plaintext)
 
-# 2. Rail Fence Cipher
 def rail_fence_enkripsi(plain, rel):
     """Enkripsi Rail Fence Cipher dengan jumlah rel fleksibel."""
     if rel <= 1:
@@ -136,7 +127,7 @@ def rail_fence_enkripsi(plain, rel):
     teks = plain.replace(" ", "").upper()
     pagar = [[] for _ in range(rel)]
     baris = 0
-    arah = 1  # 1 = turun, -1 = naik
+    arah = 1
     
     for char in teks:
         pagar[baris].append(char)
@@ -157,7 +148,6 @@ def rail_fence_dekripsi(cipher, rel):
     panjang = len(teks)
     pagar = [['\n' for _ in range(panjang)] for _ in range(rel)]
     
-    # Tandai pola zig-zag
     baris = 0
     arah = 1
     for i in range(panjang):
@@ -168,7 +158,6 @@ def rail_fence_dekripsi(cipher, rel):
             arah = -1
         baris += arah
         
-    # Isi tanda '*' dengan huruf dari ciphertext
     idx = 0
     for r in range(rel):
         for c in range(panjang):
@@ -176,7 +165,6 @@ def rail_fence_dekripsi(cipher, rel):
                 pagar[r][c] = teks[idx]
                 idx += 1
                 
-    # Baca secara zig-zag
     hasil = []
     baris = 0
     arah = 1
@@ -192,79 +180,123 @@ def rail_fence_dekripsi(cipher, rel):
 
 
 # ==========================================
-# BAGIAN D & E: FUNGSI MAIN & PENGUJIAN
+# BAGIAN D & E: MODUL PENGUJIAN TERPISAH
 # ==========================================
 
-def main():
-    print("=" * 55)
-    print("PROGRAM UJIAN TENGAH SEMESTER - KRIPTOGRAFI")
-    print("=" * 55)
+def uji_soal_1_2_3():
+    """Blok Pengujian 1: Soal 1, Soal 2, dan Soal 3."""
+    print("\n" + "=" * 60)
+    print("BAGIAN 1: PENGUJIAN SOAL 1, SOAL 2, DAN SOAL 3")
+    print("=" * 60)
 
-    # 1. Uji Validasi Kunci Affine (Menolak kunci tidak valid)
-    print("\n[UJI VALIDASI KUNCI AFFINE]")
+    # Uji Validasi Kunci Affine
+    print("\n[Validasi Kunci Affine]")
     try:
         affine_enkripsi("TES", a=4, b=5)
     except ValueError as e:
-        print(f"Berhasil menangkap error: {e}")
+        print(f"  Status : BERHASIL MENOLAK KUNCI -> {e}")
 
-    # 2. Simulasi Soal 1 (Affine Cipher)
-    print("\n[SOAL 1 - AFFINE CIPHER]")
-    # Silakan sesuaikan plaintext dan kunci dengan soal UTS Anda
+    # Soal 1: Affine Cipher (Enkripsi & Dekripsi)
+    print("\n[Soal 1 - Affine Cipher]")
     plain_s1 = "KRIPTOGRAFI"
-    a_s1, b_s1 = 5, 8
+    a_s1, b_s1 = 7, 10
     cipher_s1 = affine_enkripsi(plain_s1, a_s1, b_s1)
     dekrip_s1 = affine_dekripsi(cipher_s1, a_s1, b_s1)
-    print(f"Plaintext  : {plain_s1}")
-    print(f"Kunci      : a={a_s1}, b={b_s1}")
-    print(f"Ciphertext : {cipher_s1}")
-    print(f"Dekripsi   : {dekrip_s1}")
+    print(f"  Plaintext      : {plain_s1}")
+    print(f"  Kunci          : a={a_s1}, b={b_s1}")
+    print(f"  Hasil Enkripsi : {cipher_s1}")
+    print(f"  Hasil Dekripsi : {dekrip_s1}")
 
-    # 3. Simulasi Soal 2 (Cipher Transposisi)
-    print("\n[SOAL 2 - CIPHER TRANSPOSISI]")
-    # Silakan sesuaikan plaintext dan kunci/rel dengan soal UTS Anda
-    plain_s2 = "KEAMANANDATA"
+    print("\n[Soal 2 - DESKRIPSI Affine Cipher]")
+    cipher_uji = "EVWUNINLWZIP"
+    expected_uji = "UNISBABLITAR"
+    hasil_uji = affine_dekripsi(cipher_uji, a=5, b=8)
+    print(f"     Input Cipher : {cipher_uji} (a=5, b=8)")
+    print(f"     Hasil Dekrip : {hasil_uji}")
+    print(f"     Status       : {'LULUS' if hasil_uji == expected_uji else 'GAGAL'}")
+
+    # Soal 3: Columnar Transposition Cipher
+    print("\n[Soal 3 - Columnar Transposition Cipher]")
+    plain_s3 = "TEKNIKINFORMATIKAUNISBA"
     kunci_kolom = "KUNCI"
-    rel_rf = 3
-    
-    c_col = columnar_enkripsi(plain_s2, kunci_kolom)
+    c_col = columnar_enkripsi(plain_s3, kunci_kolom)
     d_col = columnar_dekripsi(c_col, kunci_kolom)
-    print(f"Columnar (Kunci='{kunci_kolom}')")
-    print(f"  Enkripsi : {c_col}")
-    print(f"  Dekripsi : {d_col}")
+    print(f"  Plaintext      : {plain_s3}")
+    print(f"  Kata Kunci     : '{kunci_kolom}'")
+    print(f"  Hasil Enkripsi : {c_col}")
+    print(f"  Hasil Dekripsi : {d_col}")
+
+
+def uji_brute_force():
+    """Blok Pengujian 2: Khusus Brute Force Affine Cipher."""
+    print("\n" + "=" * 60)
+    print("BAGIAN 2: PENGUJIAN BRUTE FORCE AFFINE CIPHER")
+    print("=" * 60 + "\n")
     
-    c_rf = rail_fence_enkripsi(plain_s2, rel_rf)
-    d_rf = rail_fence_dekripsi(c_rf, rel_rf)
-    print(f"Rail Fence (Rel={rel_rf})")
-    print(f"  Enkripsi : {c_rf}")
-    print(f"  Dekripsi : {d_rf}")
-
-    # 4. Simulasi Soal 3 & Bagian B (Brute Force Affine)
-    print("\n[SOAL 3 - BRUTE FORCE AFFINE CIPHER]")
-    # Contoh ciphertext yang memuat kata INFORMATIKA (misal dienkripsi dengan a=7, b=3)
-    # Ganti variabel 'cipher_s3' di bawah ini dengan ciphertext asli dari Soal 3 UTS Anda!
-    contoh_plain_s3 = "TEKNIKINFORMATIKA"
-    cipher_s3 = affine_enkripsi(contoh_plain_s3, a=7, b=3) 
-    brute_force_affine(cipher_s3, "INFORMATIKA")
-
-    # 5. Bagian E: Uji dengan Data Pribadi
-    print("\n[BAGIAN E - UJI DATA PRIBADI]")
-    # Silakan ganti dengan Nama Lengkap & NIM Anda
-    nama_pribadi = "BUDISANTOSO"
-    nim_pribadi = "20241010"
+    # Ganti variabel 'cipher_target' dengan ciphertext asli dari soal jika berbeda
+    contoh_plain = "TEKNIKINFORMATIKAUNISBA"
+    cipher_target = affine_enkripsi(contoh_plain, a=7, b=3)
     
-    # Uji Affine pada Nama (a=3, b=7)
-    c_nama = affine_enkripsi(nama_pribadi, 3, 7)
-    d_nama = affine_dekripsi(c_nama, 3, 7)
-    print(f"Data Pribadi (Nama) : {nama_pribadi}")
-    print(f"Affine Enkripsi     : {c_nama}")
-    print(f"Affine Dekripsi     : {d_nama} -> Match: {nama_pribadi == d_nama}")
+    brute_force_affine(cipher_target, "INFORMATIKA")
 
-    # Uji Rail Fence pada NIM (rel=3)
-    c_nim = rail_fence_enkripsi(nim_pribadi, 3)
-    d_nim = rail_fence_dekripsi(c_nim, 3)
-    print(f"\nData Pribadi (NIM)  : {nim_pribadi}")
-    print(f"Rail Fence Enkripsi : {c_nim}")
-    print(f"Rail Fence Dekripsi : {d_nim} -> Match: {nim_pribadi == d_nim}")
+
+
+def uji_data_pribadi():
+    """Blok Pengujian 3: Uji Columnar Transposition & Rail Fence pada Data Pribadi (Fleksibel)."""
+    print("\n" + "=" * 60)
+    print("BAGIAN 3: PENGUJIAN DATA PRIBADI (TRANSPOSISI FLEKSIBEL)")
+    print("=" * 60)
+
+    # Silakan ganti dengan Nama Lengkap (tanpa spasi) dan NIM Anda
+    nama_pribadi = "ANANDACAHYOKARTIKO"
+    DESA = "DESATULISKRIYO"
+
+    # 1. Pengujian Columnar Transposition dengan variasi panjang kunci (jumlah kolom fleksibel)
+    print("\n[Uji 1: Columnar Transposition pada Nama (Kolom Fleksibel)]")
+    daftar_kunci_kolom = ["KEY", "UNISBA"]  # Uji dengan 3 kolom dan 6 kolom
+    
+    for kunci in daftar_kunci_kolom:
+        c_col = columnar_enkripsi(nama_pribadi, kunci)
+        d_col = columnar_dekripsi(c_col, kunci)
+        # Hapus karakter padding 'X' di akhir saat mencocokkan dengan nama asli
+        d_col_bersih = d_col.rstrip('X')
+        
+        print(f"  -> Kunci '{kunci}' ({len(kunci)} Kolom):")
+        print(f"     Data Asli      : {nama_pribadi}")
+        print(f"     Hasil Enkripsi : {c_col}")
+        print(f"     Hasil Dekripsi : {d_col} (Tanpa padding: {d_col_bersih})")
+        print(f"     Verifikasi     : {'COCOK (100% Sama)' if nama_pribadi == d_col_bersih else 'TIDAK COCOK'}\n")
+
+    # 2. Pengujian Rail Fence Cipher dengan variasi jumlah rel fleksibel
+    print("[Uji 2: Rail Fence Cipher pada NIM & Nama (Rel Fleksibel)]")
+    daftar_rel = [2, 3, 4]  # Uji dengan 2 rel, 3 rel, dan 4 rel
+    
+    for rel in daftar_rel:
+        c_rf = rail_fence_enkripsi(DESA, rel)
+        d_rf = rail_fence_dekripsi(c_rf, rel)
+        
+        print(f"  -> Jumlah Rel = {rel}:")
+        print(f"     Data Asli      : {DESA}")
+        print(f"     Hasil Enkripsi : {c_rf}")
+        print(f"     Hasil Dekripsi : {d_rf}")
+        print(f"     Verifikasi     : {'COCOK (100% Sama)' if DESA == d_rf else 'TIDAK COCOK'}\n")
+
+
+
+#PANGGIL FUNGSSI BLOK DIATAS 
+def main():
+    print("*" * 60)
+    print("         PROGRAM UTS KRIPTOGRAFI - PYTHON")
+    print("*" * 60)
+
+    # Memanggil ketiga blok pengujian secara berurutan dan terpisah
+    uji_soal_1_2_3()
+    uji_brute_force()
+    uji_data_pribadi()
+
+    print("\n" + "*" * 60)
+    print("                 SELURUH PENGUJIAN SELESAI")
+    print("*" * 60)
 
 if __name__ == "__main__":
     main()
